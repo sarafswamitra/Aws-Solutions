@@ -1,0 +1,62 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::LanguageExtensions' # Required to use Fn::ForEach
+Description: 'CloudFormation template to provision 10 EC2 instances with a Security Group.'
+
+Parameters:
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t3.micro
+      - t3.small
+    ConstraintDescription: Must be a valid EC2 instance type.
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
+    Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: Must be the name of an existing EC2 KeyPair.
+  LatestAmiId:
+    Description: Fetch the latest Amazon Linux 2 AMI ID from SSM Parameter Store
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
+
+Resources:
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enable SSH access via port 22
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+
+  # Loop to generate 10 instances
+  'Fn::ForEach::EC2InstancesLoop':
+    - Index
+    - ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'] # List of strings to avoid errors
+    - 'MyEC2Instance${Index}': # Dynamic Logical ID for each instance
+        Type: AWS::EC2::Instance
+        Properties:
+          InstanceType: !Ref InstanceType
+          KeyName: !Ref KeyName
+          ImageId: !Ref LatestAmiId
+          SecurityGroups:
+            - !Ref InstanceSecurityGroup
+          Tags:
+            - Key: Name
+              Value: !Sub 'MyEC2Instance-${Index}' # Dynamic Tag Name
+
+Outputs:
+  # Loop to generate matching Output blocks for all 10 instances
+  'Fn::ForEach::EC2OutputsLoop':
+    - Index
+    - ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
+    - 'InstanceId${Index}':
+        Description: !Sub 'The Instance ID for instance ${Index}'
+        Value: !Ref 'MyEC2Instance${Index}'
+      'PublicIp${Index}':
+        Description: !Sub 'Public IP address of instance ${Index}'
+        Value: !GetAtt ['MyEC2Instance${Index}', 'PublicIp']
