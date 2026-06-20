@@ -10,3 +10,9 @@ Resources:
       KeyName: CF-Keypair
       ImageId: ami-0c55b159cbfafe1f0
       AvailabilityZone: us-east-1
+
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
+    Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
